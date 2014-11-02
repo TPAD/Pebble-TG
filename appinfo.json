@@ -1,0 +1,30 @@
+{
+    "appKeys": {},
+    "capabilities": [
+        ""
+    ],
+    "companyName": "tony05159@gmail.com",
+    "longName": "Tour Guides",
+    "projectType": "native",
+    "resources": {
+        "media": [
+            {
+                "file": "images/Thumbs Up.PNG",
+                "name": "Thumbs_Up",
+                "type": "png-trans"
+            },
+            {
+                "file": "images/Thumbs Down.PNG",
+                "name": "Thumbs_Down_WHITE",
+                "type": "png-trans"
+            }
+        ]
+    },
+    "shortName": "Tour Guides",
+    "uuid": "7db27e9d-63db-454d-a32a-74a188175e30",
+    "versionCode": 1,
+    "versionLabel": "1.0",
+    "watchapp": {
+        "watchface": false
+    }
+}
