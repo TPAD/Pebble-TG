@@ -6,6 +6,7 @@
 
 static void send(int key, int value);
 static void out_sent_handler(DictionaryIterator *iterator, void *context);
+static void in_received_handler(DictionaryIterator *iterator, void *context);
 
 int currentWindow = 0;
 
@@ -17,7 +18,6 @@ Window *tg_downvote_window;
 TextLayer *tg_text_upvote;
 TextLayer *tg_text_hotspots;
 TextLayer *tg_text_downvote;
-TextLayer *requesting;
 
 MenuLayer *menu_layer;
 
@@ -31,12 +31,14 @@ void up_button(ClickRecognizerRef recognizer, void *context)
 {
   if (currentWindow == 0) {
     // currently main window
-    // Button pressed, tell iOS
+    // Button pressed, tell iOS and display thumbs up!
     send(KEY_BUTTON, UPVOTE_BUTTON);
     window_stack_push(tg_upvote_window, true);
     currentWindow = 1;
   } else if (currentWindow == 1) {
     // currently upvote window 
+    // display main window if up pressed again
+    // nothing otherwise
     window_stack_pop(true);
     currentWindow = 0;
   }
@@ -46,11 +48,14 @@ void select_button(ClickRecognizerRef recognizer, void *context)
 {
   if (currentWindow == 0) {
     // currently main window 
+    // Tell iOS button is pressed and display hotspots!
     send(KEY_BUTTON, REQUEST_BUTTON);
     window_stack_push(tg_hotspots_window, true);
     currentWindow = 2;
   } else if (currentWindow == 2) {
-    // currently request window 
+    // currently hotspots window 
+    // display main window if select pressed again
+    // nothing otherwise
     window_stack_pop(true);
     currentWindow = 0;
   }
@@ -60,12 +65,14 @@ void down_button(ClickRecognizerRef recognizer, void *context)
 {
   if (currentWindow == 0) {
     // currently main window 
-    // Button pressed, tell iOS
+    // Button pressed, tell iOS snd display thumbs down!
     send(KEY_BUTTON, DOWNVOTE_BUTTON);
     window_stack_push(tg_downvote_window, true);
-    currentWindow = 5;
+    currentWindow = 3;
   } else if (currentWindow == 3) {
     // currently request window 
+    // display main window if down pressed again
+    // nothing otherwise
     window_stack_pop(true);
     currentWindow = 0;
   }
@@ -83,19 +90,19 @@ void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_index, 
   switch(cell_index->row)
   {
   case 0:
-    menu_cell_basic_draw(ctx, cell_layer, "1. Location", "Pin Numbers", NULL);
+    menu_cell_basic_draw(ctx, cell_layer, "1. Location", "Address", NULL);
     break;
   case 1:
-    menu_cell_basic_draw(ctx, cell_layer, "2. Location", "Pin Numbers", NULL);
+    menu_cell_basic_draw(ctx, cell_layer, "2. Location", "Address", NULL);
     break;
   case 2:
-    menu_cell_basic_draw(ctx, cell_layer, "3. Location", "Pin Numbers", NULL);
+    menu_cell_basic_draw(ctx, cell_layer, "3. Location", "Address", NULL);
     break;
   case 3:
-    menu_cell_basic_draw(ctx, cell_layer, "4. Location", "Pin Numbers", NULL);
+    menu_cell_basic_draw(ctx, cell_layer, "4. Location", "Address", NULL);
     break;
   case 4:
-    menu_cell_basic_draw(ctx, cell_layer, "5. Location", "Pin Numbers", NULL);
+    menu_cell_basic_draw(ctx, cell_layer, "5. Location", "Address", NULL);
     break;
   }
 }
@@ -107,7 +114,8 @@ uint16_t num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *
 
 void select_click_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context)
 { 
-  
+  window_stack_pop(true);
+  currentWindow = 0;
 }
 
 void tg_upvote_load(Window *window)
@@ -178,7 +186,7 @@ void tg_main_load(Window *window)
   
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(tg_text_upvote));
   
-  //Call an Uber button
+  //Locate Hotspots button
   tg_text_hotspots = text_layer_create(GRect(23, 60, 120, 32));
   text_layer_set_background_color(tg_text_hotspots, GColorBlack);
   text_layer_set_text_color(tg_text_hotspots, GColorClear);
@@ -212,35 +220,41 @@ void init()
 {
   upvoteBitmap = gbitmap_create_with_resource(RESOURCE_ID_Thumbs_Up_WHITE);
   downvoteBitmap = gbitmap_create_with_resource(RESOURCE_ID_Thumbs_Down_WHITE_WHITE);
+  //main window and handlers and button functionality
   tg_main_window = window_create();
-  tg_upvote_window = window_create();
-  tg_hotspots_window = window_create();
-  tg_downvote_window = window_create();
   window_set_window_handlers(tg_main_window, (WindowHandlers) {
     .load = tg_main_load,
     .unload = tg_main_unload,
   });
+  window_set_click_config_provider(tg_main_window, click_config_provider);
+  //upvote window and handlers and button functionality
+  tg_upvote_window = window_create();
   window_set_window_handlers(tg_upvote_window, (WindowHandlers) {
     .load = tg_upvote_load,
     .unload = tg_upvote_unload,
   });
+  window_set_click_config_provider(tg_upvote_window, click_config_provider);
+  //hotspots window and handlers and button functionality
+  tg_hotspots_window = window_create();
   window_set_window_handlers(tg_hotspots_window, (WindowHandlers) {
     .load = tg_hotspots_load,
     .unload = tg_hotspots_unload,
   });
+  window_set_click_config_provider(tg_hotspots_window, click_config_provider);
+  //downvote window and handlers and button functionality
+  tg_downvote_window = window_create();
   window_set_window_handlers(tg_downvote_window, (WindowHandlers) {
     .load = tg_downvote_load,
     .unload = tg_downvote_unload,
   });
-  window_set_click_config_provider(tg_main_window, click_config_provider);
-  window_set_click_config_provider(tg_upvote_window, click_config_provider);
-  window_set_click_config_provider(tg_hotspots_window, click_config_provider);
   window_set_click_config_provider(tg_downvote_window, click_config_provider);
+  
   window_stack_push(tg_main_window, true);
 
   app_message_open(app_message_inbox_size_maximum(), 
   	app_message_outbox_size_maximum());
   app_message_register_outbox_sent(out_sent_handler);
+  app_message_register_inbox_received(in_received_handler);
 }
 
 void deinit()
@@ -267,3 +281,7 @@ static void send(int key, int value) {
 static void out_sent_handler(DictionaryIterator *iterator, void *context) {
   APP_LOG(APP_LOG_LEVEL_INFO, "Message was sent ok!");
 }
+
+static void in_received_handler(DictionaryIterator *iterator, void *context) {
+   // incoming message received
+ }
